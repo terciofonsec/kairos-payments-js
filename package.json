@@ -1,6 +1,7 @@
 {
   "name": "@kairos/payments-js",
   "version": "0.1.0",
+  "type": "module",
   "description": "Kairos Payment Hub - JavaScript SDK for card tokenization and payments",
   "main": "dist/kairos.cjs.js",
   "module": "dist/kairos.esm.js",
@@ -43,6 +44,8 @@
     "@rollup/plugin-terser": "^0.4.0",
     "@rollup/plugin-typescript": "^11.0.0",
     "@types/node": "^20.0.0",
+    "@types/react": "^19.2.13",
+    "@types/react-dom": "^19.2.3",
     "eslint": "^8.0.0",
     "rollup": "^4.0.0",
     "tslib": "^2.6.0",
