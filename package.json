@@ -1,0 +1,64 @@
+{
+  "name": "@kairos/payments-js",
+  "version": "0.1.0",
+  "description": "Kairos Payment Hub - JavaScript SDK for card tokenization and payments",
+  "main": "dist/kairos.cjs.js",
+  "module": "dist/kairos.esm.js",
+  "browser": "dist/kairos.min.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
+    "test": "vitest",
+    "lint": "eslint src --ext .ts",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kairos-payments/kairos-js.git"
+  },
+  "keywords": [
+    "kairos",
+    "payments",
+    "pix",
+    "credit-card",
+    "tokenization",
+    "mercadopago",
+    "pagseguro",
+    "brazil"
+  ],
+  "author": "Kairos Payments",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kairos-payments/kairos-js/issues"
+  },
+  "homepage": "https://docs.kairoshub.tech/sdk/javascript",
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^25.0.0",
+    "@rollup/plugin-node-resolve": "^15.0.0",
+    "@rollup/plugin-terser": "^0.4.0",
+    "@rollup/plugin-typescript": "^11.0.0",
+    "@types/node": "^20.0.0",
+    "eslint": "^8.0.0",
+    "rollup": "^4.0.0",
+    "tslib": "^2.6.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "peerDependencies": {
+    "react": ">=17.0.0",
+    "react-dom": ">=17.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
+  }
+}
