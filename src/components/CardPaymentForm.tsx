@@ -164,6 +164,49 @@ export function CardPaymentForm({
         id="kairos-card-payment-container"
         style={{ display: loading ? 'none' : 'block' }}
       />
+
+      {!loading && !error && (
+        <div className="kairos-branding" style={brandingStyles}>
+          <KairosLogo />
+          <span style={brandingTextStyle}>Powered by Kairos</span>
+        </div>
+      )}
     </div>
+  );
+}
+
+const brandingStyles: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '6px',
+  padding: '8px 0 4px',
+  opacity: 0.6,
+};
+
+const brandingTextStyle: React.CSSProperties = {
+  fontSize: '11px',
+  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+  color: '#6b7280',
+  letterSpacing: '0.02em',
+};
+
+function KairosLogo() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M12 2L2 7v10l10 5 10-5V7L12 2z"
+        stroke="#6b7280"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M12 7v10M8 9l4 3 4-3M8 15l4-3 4 3"
+        stroke="#6b7280"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
