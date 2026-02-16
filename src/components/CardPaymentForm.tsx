@@ -193,20 +193,16 @@ const brandingTextStyle: React.CSSProperties = {
 
 function KairosLogo() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path
-        d="M12 2L2 7v10l10 5 10-5V7L12 2z"
-        stroke="#6b7280"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M12 7v10M8 9l4 3 4-3M8 15l4-3 4 3"
-        stroke="#6b7280"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+    <svg width="14" height="14" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="kairos-form-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#3B82F6"/>
+          <stop offset="100%" stopColor="#8B5CF6"/>
+        </linearGradient>
+      </defs>
+      <circle cx="24" cy="24" r="22" fill="url(#kairos-form-grad)"/>
+      <path d="M16 12 L16 36 M16 24 L32 12 M16 24 L32 36" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="36" cy="36" r="5" fill="#10B981"/>
     </svg>
   );
 }

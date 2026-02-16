@@ -252,10 +252,17 @@ export class KairosEncryptedAdapter implements PspAdapter {
   private buildFormHtml(config: CardPaymentConfig): string {
     const amountFormatted = config.amount.toFixed(2).replace('.', ',');
 
-    // Kairos hexagonal logo SVG (inline)
-    const kairosLogoSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 2L2 7v10l10 5 10-5V7L12 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-      <path d="M12 7v10M8 9l4 3 4-3M8 15l4-3 4 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    // Kairos brand logo SVG (matches console icon)
+    const kairosLogoSvg = `<svg width="18" height="18" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="kairos-logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#3B82F6"/>
+          <stop offset="100%" style="stop-color:#8B5CF6"/>
+        </linearGradient>
+      </defs>
+      <circle cx="24" cy="24" r="22" fill="url(#kairos-logo-grad)"/>
+      <path d="M16 12 L16 36 M16 24 L32 12 M16 24 L32 36" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="36" cy="36" r="5" fill="#10B981"/>
     </svg>`;
 
     return `
