@@ -9,6 +9,7 @@ import type {
 } from '../types';
 import { MercadoPagoAdapter } from '../adapters/MercadoPagoAdapter';
 import { PagSeguroAdapter } from '../adapters/PagSeguroAdapter';
+import { KairosEncryptedAdapter } from '../adapters/KairosEncryptedAdapter';
 
 /**
  * Main entry point for Kairos Payments SDK.
@@ -55,33 +56,51 @@ export class KairosPayments {
 
   /**
    * Fetch tokenization options from Kairos API.
+   * Non-fatal: if no PSP options are available, KairosEncryptedAdapter is used as fallback.
    */
   private async fetchOptions(): Promise<void> {
     const url = `${this.config.apiUrl}/api/v1/tokenization/${this.config.tenantId}/options`;
 
     this.log('Fetching tokenization options from', url);
 
-    const response = await fetch(url);
+    try {
+      const response = await fetch(url);
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      throw new Error(
-        error.message || `Failed to fetch tokenization options: ${response.status}`
-      );
+      if (!response.ok) {
+        this.log('Failed to fetch tokenization options:', response.status);
+        this.options = [];
+        return;
+      }
+
+      const data: TokenizationOptions = await response.json();
+      this.options = data.options || [];
+
+      this.log('Available PSPs:', this.options.map(o => o.provider));
+    } catch (err) {
+      // Network error — Kairos encrypted adapter will be used as fallback
+      this.log('Error fetching tokenization options, will use Kairos encryption:', err);
+      this.options = [];
     }
-
-    const data: TokenizationOptions = await response.json();
-    this.options = data.options;
-
-    this.log('Available PSPs:', this.options.map(o => o.provider));
   }
 
   /**
    * Get the best available PSP adapter.
+   *
+   * Selection priority:
+   * 1. If preferredProvider is 'KAIROS', use KairosEncryptedAdapter (our own encryption)
+   * 2. If preferredProvider matches a PSP option, use that PSP adapter
+   * 3. Use the first available PSP option
+   * 4. Fallback to KairosEncryptedAdapter when no PSP has client-side tokenization
    */
   private async getAdapter(): Promise<PspAdapter> {
     if (this.adapter) {
       return this.adapter;
+    }
+
+    // If KAIROS is explicitly preferred, use our encrypted adapter directly
+    if (this.config.preferredProvider === 'KAIROS') {
+      this.log('Using Kairos Encrypted adapter (preferred)');
+      return this.initKairosAdapter();
     }
 
     // Find preferred or first available PSP
@@ -96,8 +115,10 @@ export class KairosPayments {
       }
     }
 
+    // Fallback to Kairos encryption when no PSP with client-side tokenization
     if (!option) {
-      throw new Error('No PSP available for card payments. Contact your administrator.');
+      this.log('No PSP with client-side tokenization available, falling back to Kairos encryption');
+      return this.initKairosAdapter();
     }
 
     this.log('Using PSP:', option.provider);
@@ -111,7 +132,9 @@ export class KairosPayments {
         this.adapter = new PagSeguroAdapter();
         break;
       default:
-        throw new Error(`Unsupported PSP provider: ${option.provider}`);
+        // Unknown PSP — try Kairos encrypted adapter as fallback
+        this.log(`Unknown PSP provider "${option.provider}", falling back to Kairos encryption`);
+        return this.initKairosAdapter();
     }
 
     // Initialize adapter with public key
@@ -120,6 +143,19 @@ export class KairosPayments {
       environment: option.environment
     });
 
+    return this.adapter;
+  }
+
+  /**
+   * Initialize the Kairos Encrypted adapter (our own card form + encryption).
+   */
+  private async initKairosAdapter(): Promise<PspAdapter> {
+    this.adapter = new KairosEncryptedAdapter();
+    await this.adapter.init('', {
+      apiUrl: this.config.apiUrl,
+      tenantId: this.config.tenantId,
+      locale: this.config.locale,
+    });
     return this.adapter;
   }
 

@@ -7,6 +7,15 @@
   "module": "dist/kairos.esm.js",
   "browser": "dist/kairos.min.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/kairos.esm.js",
+      "require": "./dist/kairos.cjs.js",
+      "default": "./dist/kairos.esm.js"
+    },
+    "./dist/*": "./dist/*"
+  },
   "files": [
     "dist",
     "README.md"

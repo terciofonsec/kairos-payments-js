@@ -28,7 +28,7 @@ export interface CardPaymentFormProps {
     /** API URL (optional) */
     apiUrl?: string;
     /** Preferred PSP provider */
-    preferredProvider?: 'MERCADOPAGO' | 'PAGSEGURO';
+    preferredProvider?: 'MERCADOPAGO' | 'PAGSEGURO' | 'KAIROS';
     /** Maximum installments */
     maxInstallments?: number;
     /** Callback on successful payment */

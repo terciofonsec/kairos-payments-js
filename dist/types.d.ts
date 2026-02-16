@@ -9,7 +9,7 @@ export interface KairosConfig {
     /** Kairos API base URL (defaults to https://api.kairoshub.tech) */
     apiUrl?: string;
     /** Preferred PSP provider (optional - uses tenant's default if not specified) */
-    preferredProvider?: 'MERCADOPAGO' | 'PAGSEGURO';
+    preferredProvider?: 'MERCADOPAGO' | 'PAGSEGURO' | 'KAIROS';
     /** Locale for UI elements */
     locale?: 'pt-BR' | 'en-US' | 'es';
     /** Enable debug logging */
@@ -57,6 +57,8 @@ export interface CardPaymentStyles {
 export interface PaymentData {
     /** Card token (send this to your backend) */
     token: string;
+    /** Encrypted card data (Kairos encryption — use instead of token when provider is KAIROS) */
+    encryptedData?: string;
     /** Selected installments */
     installments: number;
     /** Payment method ID (e.g., 'visa', 'mastercard') */

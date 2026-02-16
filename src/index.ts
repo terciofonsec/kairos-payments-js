@@ -23,6 +23,11 @@
 
 export { KairosPayments } from './core/KairosPayments';
 export { CardPaymentForm } from './components/CardPaymentForm';
+export { KairosEncryptedAdapter } from './adapters/KairosEncryptedAdapter';
+
+// Encryption utilities
+export { encryptCardData, isEncryptionAvailable, clearEncryptionCache } from './crypto/encryption';
+export type { CardDataToEncrypt } from './crypto/encryption';
 
 // Types
 export type {

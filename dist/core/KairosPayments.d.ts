@@ -28,12 +28,23 @@ export declare class KairosPayments {
     static init(config: KairosConfig): Promise<KairosPayments>;
     /**
      * Fetch tokenization options from Kairos API.
+     * Non-fatal: if no PSP options are available, KairosEncryptedAdapter is used as fallback.
      */
     private fetchOptions;
     /**
      * Get the best available PSP adapter.
+     *
+     * Selection priority:
+     * 1. If preferredProvider is 'KAIROS', use KairosEncryptedAdapter (our own encryption)
+     * 2. If preferredProvider matches a PSP option, use that PSP adapter
+     * 3. Use the first available PSP option
+     * 4. Fallback to KairosEncryptedAdapter when no PSP has client-side tokenization
      */
     private getAdapter;
+    /**
+     * Initialize the Kairos Encrypted adapter (our own card form + encryption).
+     */
+    private initKairosAdapter;
     /**
      * Create a card payment form.
      *
