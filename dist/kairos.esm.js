@@ -448,6 +448,10 @@ function arrayBufferToBase64(buffer) {
  * (e.g., Asaas), or when the tenant explicitly prefers Kairos encryption.
  *
  * Card data never leaves the browser unencrypted.
+ *
+ * Styling: Uses CSS custom properties (--kairos-*) so host apps can override
+ * colors, fonts, and borders. Falls back to sensible defaults and inherits
+ * font-family from the parent element.
  */
 class KairosEncryptedAdapter {
     constructor() {
@@ -648,10 +652,31 @@ class KairosEncryptedAdapter {
     }
     buildFormHtml(config) {
         const amountFormatted = config.amount.toFixed(2).replace('.', ',');
+        // Kairos hexagonal logo SVG (inline)
+        const kairosLogoSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2L2 7v10l10 5 10-5V7L12 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+      <path d="M12 7v10M8 9l4 3 4-3M8 15l4-3 4 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>`;
         return `
       <style>
+        /*
+         * Kairos Payments SDK — Card Form Styles
+         *
+         * Override with CSS custom properties on the parent element:
+         *   --kairos-font:        Font family (default: inherit)
+         *   --kairos-text:        Text color (default: inherit)
+         *   --kairos-text-muted:  Muted text / labels (default: inherit with opacity)
+         *   --kairos-bg:          Input background (default: transparent)
+         *   --kairos-border:      Border color (default: currentColor with opacity)
+         *   --kairos-radius:      Border radius (default: 8px)
+         *   --kairos-focus:       Focus ring color (default: #7c3aed)
+         *   --kairos-accent:      Button gradient start (default: #7c3aed)
+         *   --kairos-accent-end:  Button gradient end (default: #9333ea)
+         *   --kairos-success:     Security badge color (default: #059669)
+         */
         .kairos-enc-form {
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+          font-family: var(--kairos-font, inherit);
+          color: var(--kairos-text, inherit);
           display: flex;
           flex-direction: column;
           gap: 16px;
@@ -664,28 +689,30 @@ class KairosEncryptedAdapter {
         .kairos-enc-field label {
           font-size: 13px;
           font-weight: 500;
-          color: #374151;
+          opacity: 0.7;
         }
         .kairos-enc-field input,
         .kairos-enc-field select {
           height: 44px;
           padding: 0 12px;
-          border: 1px solid #d1d5db;
-          border-radius: 8px;
+          border: 1px solid var(--kairos-border, color-mix(in srgb, currentColor 25%, transparent));
+          border-radius: var(--kairos-radius, 8px);
           font-size: 15px;
-          color: #111827;
-          background: #fff;
+          font-family: inherit;
+          color: inherit;
+          background: var(--kairos-bg, transparent);
           outline: none;
           transition: border-color 0.15s, box-shadow 0.15s;
           -webkit-appearance: none;
         }
         .kairos-enc-field input:focus,
         .kairos-enc-field select:focus {
-          border-color: #7c3aed;
-          box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+          border-color: var(--kairos-focus, #7c3aed);
+          box-shadow: 0 0 0 3px color-mix(in srgb, var(--kairos-focus, #7c3aed) 15%, transparent);
         }
         .kairos-enc-field input::placeholder {
-          color: #9ca3af;
+          color: inherit;
+          opacity: 0.4;
         }
         .kairos-enc-row {
           display: grid;
@@ -702,64 +729,65 @@ class KairosEncryptedAdapter {
           transform: translateY(-50%);
           font-size: 11px;
           font-weight: 700;
-          color: #6b7280;
+          opacity: 0.5;
           letter-spacing: 0.05em;
           display: none;
         }
         .kairos-enc-error {
           display: none;
           padding: 10px 14px;
-          background: #fef2f2;
-          border: 1px solid #fecaca;
-          border-radius: 8px;
-          color: #dc2626;
+          background: color-mix(in srgb, #ef4444 10%, transparent);
+          border: 1px solid color-mix(in srgb, #ef4444 25%, transparent);
+          border-radius: var(--kairos-radius, 8px);
+          color: #ef4444;
           font-size: 13px;
         }
         .kairos-enc-security {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 10px;
           padding: 12px 14px;
-          background: linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%);
-          border: 1px solid rgba(16, 185, 129, 0.2);
-          border-radius: 10px;
+          background: color-mix(in srgb, var(--kairos-success, #059669) 8%, transparent);
+          border: 1px solid color-mix(in srgb, var(--kairos-success, #059669) 20%, transparent);
+          border-radius: var(--kairos-radius, 8px);
         }
         .kairos-enc-security-icon {
           flex-shrink: 0;
           width: 28px;
           height: 28px;
-          color: #059669;
+          color: var(--kairos-success, #059669);
         }
         .kairos-enc-security-text {
           flex: 1;
+          min-width: 0;
         }
         .kairos-enc-security-text strong {
           display: block;
           font-size: 13px;
           font-weight: 600;
-          color: #065f46;
+          color: var(--kairos-success, #059669);
         }
         .kairos-enc-security-text span {
           font-size: 11px;
-          color: #047857;
-          opacity: 0.8;
+          color: var(--kairos-success, #059669);
+          opacity: 0.75;
         }
         .kairos-enc-security-badge {
           display: flex;
           align-items: center;
-          gap: 4px;
+          gap: 5px;
           flex-shrink: 0;
+          color: var(--kairos-success, #059669);
+          opacity: 0.85;
         }
         .kairos-enc-security-badge svg {
-          width: 12px;
-          height: 12px;
-          color: #10b981;
+          width: 18px;
+          height: 18px;
         }
-        .kairos-enc-security-badge span {
-          font-size: 9px;
-          font-weight: 800;
-          color: #047857;
-          letter-spacing: 0.12em;
+        .kairos-enc-security-lock {
+          width: 10px;
+          height: 10px;
+          opacity: 0.7;
         }
         .kairos-enc-submit {
           display: flex;
@@ -769,11 +797,12 @@ class KairosEncryptedAdapter {
           width: 100%;
           height: 52px;
           border: none;
-          border-radius: 10px;
+          border-radius: var(--kairos-radius, 8px);
           font-size: 16px;
           font-weight: 600;
+          font-family: inherit;
           color: #fff;
-          background: linear-gradient(135deg, #7c3aed 0%, #9333ea 100%);
+          background: linear-gradient(135deg, var(--kairos-accent, #7c3aed) 0%, var(--kairos-accent-end, #9333ea) 100%);
           cursor: pointer;
           transition: opacity 0.15s, transform 0.1s;
         }
@@ -796,34 +825,6 @@ class KairosEncryptedAdapter {
         }
         @keyframes kairos-enc-spin {
           to { transform: rotate(360deg); }
-        }
-        @media (prefers-color-scheme: dark) {
-          .kairos-enc-field label { color: #d1d5db; }
-          .kairos-enc-field input,
-          .kairos-enc-field select {
-            background: #1f2937;
-            border-color: #374151;
-            color: #f3f4f6;
-          }
-          .kairos-enc-field input:focus,
-          .kairos-enc-field select:focus {
-            border-color: #8b5cf6;
-            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
-          }
-          .kairos-enc-field input::placeholder { color: #6b7280; }
-          .kairos-enc-brand { color: #9ca3af; }
-          .kairos-enc-error {
-            background: #451a1a;
-            border-color: #7f1d1d;
-            color: #fca5a5;
-          }
-          .kairos-enc-security {
-            background: linear-gradient(135deg, #064e3b20 0%, #06543420 100%);
-            border-color: rgba(16, 185, 129, 0.15);
-          }
-          .kairos-enc-security-text strong { color: #6ee7b7; }
-          .kairos-enc-security-text span { color: #34d399; }
-          .kairos-enc-security-badge span { color: #6ee7b7; }
         }
       </style>
 
@@ -896,14 +897,14 @@ class KairosEncryptedAdapter {
           </svg>
           <div class="kairos-enc-security-text">
             <strong>Pagamento Seguro</strong>
-            <span>Dados criptografados de ponta a ponta via Kairos Payment Hub</span>
+            <span>Criptografia ponta a ponta via Kairos Payment Hub</span>
           </div>
           <div class="kairos-enc-security-badge">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg class="kairos-enc-security-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
               <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
             </svg>
-            <span>KAIROS</span>
+            ${kairosLogoSvg}
           </div>
         </div>
 

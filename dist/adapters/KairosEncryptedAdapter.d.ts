@@ -9,6 +9,10 @@ import type { PspAdapter, CardPaymentConfig, CardPaymentInstance, InstallmentOpt
  * (e.g., Asaas), or when the tenant explicitly prefers Kairos encryption.
  *
  * Card data never leaves the browser unencrypted.
+ *
+ * Styling: Uses CSS custom properties (--kairos-*) so host apps can override
+ * colors, fonts, and borders. Falls back to sensible defaults and inherits
+ * font-family from the parent element.
  */
 export declare class KairosEncryptedAdapter implements PspAdapter {
     readonly provider = "KAIROS";
