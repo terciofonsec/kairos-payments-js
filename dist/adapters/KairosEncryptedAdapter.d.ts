@@ -18,6 +18,7 @@ export declare class KairosEncryptedAdapter implements PspAdapter {
     readonly provider = "KAIROS";
     private apiUrl;
     private tenantId;
+    private merchantId;
     init(_publicKey: string, options?: Record<string, unknown>): Promise<void>;
     createCardPayment(container: string | HTMLElement, config: CardPaymentConfig): Promise<CardPaymentInstance>;
     getInstallments(amount: number, _bin: string): Promise<InstallmentOption[]>;

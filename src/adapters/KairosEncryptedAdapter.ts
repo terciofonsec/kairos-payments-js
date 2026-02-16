@@ -27,10 +27,12 @@ export class KairosEncryptedAdapter implements PspAdapter {
 
   private apiUrl: string = '';
   private tenantId: string = '';
+  private merchantId: string = '';
 
   async init(_publicKey: string, options?: Record<string, unknown>): Promise<void> {
     this.apiUrl = (options?.apiUrl as string) || 'https://api.kairoshub.tech';
     this.tenantId = (options?.tenantId as string) || '';
+    this.merchantId = (options?.merchantId as string) || '';
   }
 
   async createCardPayment(
@@ -137,7 +139,8 @@ export class KairosEncryptedAdapter implements PspAdapter {
             cvv: cvvInput.value,
           },
           this.apiUrl,
-          this.tenantId
+          this.tenantId,
+          this.merchantId
         );
 
         const paymentData: PaymentData = {

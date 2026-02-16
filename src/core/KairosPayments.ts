@@ -36,6 +36,7 @@ export class KairosPayments {
   private constructor(config: KairosConfig) {
     this.config = {
       tenantId: config.tenantId,
+      merchantId: config.merchantId || '',
       environment: config.environment || 'production',
       apiUrl: config.apiUrl || 'https://api.kairoshub.tech',
       preferredProvider: config.preferredProvider || undefined as any,
@@ -154,6 +155,7 @@ export class KairosPayments {
     await this.adapter.init('', {
       apiUrl: this.config.apiUrl,
       tenantId: this.config.tenantId,
+      merchantId: this.config.merchantId,
       locale: this.config.locale,
     });
     return this.adapter;

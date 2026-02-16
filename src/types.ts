@@ -5,6 +5,9 @@ export interface KairosConfig {
   /** Tenant identifier (e.g., 'faithlink') */
   tenantId: string;
 
+  /** Merchant UUID — required for card encryption (each merchant has its own RSA key pair) */
+  merchantId?: string;
+
   /** Environment: 'sandbox' or 'production' */
   environment?: 'sandbox' | 'production';
 

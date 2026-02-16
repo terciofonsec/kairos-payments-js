@@ -2,10 +2,12 @@
  * Client-side card data encryption using Web Crypto API.
  *
  * Uses hybrid encryption: RSA-OAEP (key wrapping) + AES-256-GCM (data encryption).
- * The Kairos backend decrypts with the corresponding RSA private key.
+ * The Kairos backend decrypts with the merchant's RSA private key.
+ *
+ * Each merchant has its own RSA key pair stored in the database.
  *
  * Flow:
- * 1. Fetch RSA public key from Kairos tokenization endpoint
+ * 1. Fetch merchant's RSA public key from Kairos tokenization endpoint
  * 2. Generate random AES-256 key
  * 3. Encrypt card JSON with AES-GCM
  * 4. Wrap AES key with RSA-OAEP public key
@@ -20,21 +22,26 @@ export interface CardDataToEncrypt {
   cvv: string;
 }
 
-let cachedPublicKey: CryptoKey | null = null;
-let cacheTimestamp = 0;
-const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+// Cache public keys per merchant (keyed by merchantId)
+const keyCache = new Map<string, { key: CryptoKey; timestamp: number }>();
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours (keys are persisted in DB per merchant)
 
 /**
- * Fetch the RSA public key from the Kairos tokenization endpoint.
- * Cached for 30 minutes.
+ * Fetch the RSA public key for a specific merchant from the Kairos tokenization endpoint.
+ * Cached per merchant for 24 hours.
  */
-async function fetchPublicKey(apiUrl: string, tenantId: string): Promise<CryptoKey> {
+async function fetchPublicKey(apiUrl: string, tenantId: string, merchantId?: string): Promise<CryptoKey> {
+  const cacheKey = merchantId || '__default__';
   const now = Date.now();
-  if (cachedPublicKey && now - cacheTimestamp < CACHE_TTL) {
-    return cachedPublicKey;
+  const cached = keyCache.get(cacheKey);
+  if (cached && now - cached.timestamp < CACHE_TTL) {
+    return cached.key;
   }
 
-  const res = await fetch(`${apiUrl}/api/v1/tokenization/${tenantId}/encryption-key`);
+  const params = merchantId ? `?merchantId=${merchantId}` : '';
+  const res = await fetch(
+    `${apiUrl}/api/v1/tokenization/${tenantId}/encryption-key${params}`
+  );
   if (!res.ok) {
     throw new Error(`Failed to fetch encryption key: ${res.status}`);
   }
@@ -50,16 +57,16 @@ async function fetchPublicKey(apiUrl: string, tenantId: string): Promise<CryptoK
   }
 
   // Import as RSA-OAEP public key (SPKI format)
-  cachedPublicKey = await crypto.subtle.importKey(
+  const cryptoKey = await crypto.subtle.importKey(
     'spki',
     bytes.buffer,
     { name: 'RSA-OAEP', hash: 'SHA-256' },
     false,
     ['wrapKey']
   );
-  cacheTimestamp = now;
+  keyCache.set(cacheKey, { key: cryptoKey, timestamp: now });
 
-  return cachedPublicKey;
+  return cryptoKey;
 }
 
 /**
@@ -68,14 +75,16 @@ async function fetchPublicKey(apiUrl: string, tenantId: string): Promise<CryptoK
  * @param cardData Raw card fields
  * @param apiUrl Kairos API base URL
  * @param tenantId Tenant identifier
+ * @param merchantId Merchant UUID (each merchant has its own RSA key pair)
  * @returns Base64-encoded encrypted envelope
  */
 export async function encryptCardData(
   cardData: CardDataToEncrypt,
   apiUrl: string,
-  tenantId: string
+  tenantId: string,
+  merchantId?: string
 ): Promise<string> {
-  const rsaKey = await fetchPublicKey(apiUrl, tenantId);
+  const rsaKey = await fetchPublicKey(apiUrl, tenantId, merchantId);
 
   // Compact JSON with short keys to minimize payload
   const cardJson = JSON.stringify({
@@ -125,11 +134,11 @@ export async function encryptCardData(
 }
 
 /**
- * Check if card encryption is available (endpoint reachable).
+ * Check if card encryption is available for a merchant (endpoint reachable).
  */
-export async function isEncryptionAvailable(apiUrl: string, tenantId: string): Promise<boolean> {
+export async function isEncryptionAvailable(apiUrl: string, tenantId: string, merchantId?: string): Promise<boolean> {
   try {
-    await fetchPublicKey(apiUrl, tenantId);
+    await fetchPublicKey(apiUrl, tenantId, merchantId);
     return true;
   } catch {
     return false;
@@ -137,11 +146,14 @@ export async function isEncryptionAvailable(apiUrl: string, tenantId: string): P
 }
 
 /**
- * Clear the cached public key.
+ * Clear the cached public key for a specific merchant, or all if no merchantId.
  */
-export function clearEncryptionCache(): void {
-  cachedPublicKey = null;
-  cacheTimestamp = 0;
+export function clearEncryptionCache(merchantId?: string): void {
+  if (merchantId) {
+    keyCache.delete(merchantId);
+  } else {
+    keyCache.clear();
+  }
 }
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {

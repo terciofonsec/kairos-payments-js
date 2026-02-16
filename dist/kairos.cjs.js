@@ -337,28 +337,33 @@ class PagSeguroAdapter {
  * Client-side card data encryption using Web Crypto API.
  *
  * Uses hybrid encryption: RSA-OAEP (key wrapping) + AES-256-GCM (data encryption).
- * The Kairos backend decrypts with the corresponding RSA private key.
+ * The Kairos backend decrypts with the merchant's RSA private key.
+ *
+ * Each merchant has its own RSA key pair stored in the database.
  *
  * Flow:
- * 1. Fetch RSA public key from Kairos tokenization endpoint
+ * 1. Fetch merchant's RSA public key from Kairos tokenization endpoint
  * 2. Generate random AES-256 key
  * 3. Encrypt card JSON with AES-GCM
  * 4. Wrap AES key with RSA-OAEP public key
  * 5. Combine as base64 JSON envelope
  */
-let cachedPublicKey = null;
-let cacheTimestamp = 0;
-const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+// Cache public keys per merchant (keyed by merchantId)
+const keyCache = new Map();
+const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours (keys are persisted in DB per merchant)
 /**
- * Fetch the RSA public key from the Kairos tokenization endpoint.
- * Cached for 30 minutes.
+ * Fetch the RSA public key for a specific merchant from the Kairos tokenization endpoint.
+ * Cached per merchant for 24 hours.
  */
-async function fetchPublicKey(apiUrl, tenantId) {
+async function fetchPublicKey(apiUrl, tenantId, merchantId) {
+    const cacheKey = merchantId || '__default__';
     const now = Date.now();
-    if (cachedPublicKey && now - cacheTimestamp < CACHE_TTL) {
-        return cachedPublicKey;
+    const cached = keyCache.get(cacheKey);
+    if (cached && now - cached.timestamp < CACHE_TTL) {
+        return cached.key;
     }
-    const res = await fetch(`${apiUrl}/api/v1/tokenization/${tenantId}/encryption-key`);
+    const params = merchantId ? `?merchantId=${merchantId}` : '';
+    const res = await fetch(`${apiUrl}/api/v1/tokenization/${tenantId}/encryption-key${params}`);
     if (!res.ok) {
         throw new Error(`Failed to fetch encryption key: ${res.status}`);
     }
@@ -371,9 +376,9 @@ async function fetchPublicKey(apiUrl, tenantId) {
         bytes[i] = binaryString.charCodeAt(i);
     }
     // Import as RSA-OAEP public key (SPKI format)
-    cachedPublicKey = await crypto.subtle.importKey('spki', bytes.buffer, { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['wrapKey']);
-    cacheTimestamp = now;
-    return cachedPublicKey;
+    const cryptoKey = await crypto.subtle.importKey('spki', bytes.buffer, { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['wrapKey']);
+    keyCache.set(cacheKey, { key: cryptoKey, timestamp: now });
+    return cryptoKey;
 }
 /**
  * Encrypt card data for secure transmission to the backend.
@@ -381,10 +386,11 @@ async function fetchPublicKey(apiUrl, tenantId) {
  * @param cardData Raw card fields
  * @param apiUrl Kairos API base URL
  * @param tenantId Tenant identifier
+ * @param merchantId Merchant UUID (each merchant has its own RSA key pair)
  * @returns Base64-encoded encrypted envelope
  */
-async function encryptCardData(cardData, apiUrl, tenantId) {
-    const rsaKey = await fetchPublicKey(apiUrl, tenantId);
+async function encryptCardData(cardData, apiUrl, tenantId, merchantId) {
+    const rsaKey = await fetchPublicKey(apiUrl, tenantId, merchantId);
     // Compact JSON with short keys to minimize payload
     const cardJson = JSON.stringify({
         n: cardData.number,
@@ -413,11 +419,11 @@ async function encryptCardData(cardData, apiUrl, tenantId) {
     return btoa(envelope);
 }
 /**
- * Check if card encryption is available (endpoint reachable).
+ * Check if card encryption is available for a merchant (endpoint reachable).
  */
-async function isEncryptionAvailable(apiUrl, tenantId) {
+async function isEncryptionAvailable(apiUrl, tenantId, merchantId) {
     try {
-        await fetchPublicKey(apiUrl, tenantId);
+        await fetchPublicKey(apiUrl, tenantId, merchantId);
         return true;
     }
     catch {
@@ -425,11 +431,15 @@ async function isEncryptionAvailable(apiUrl, tenantId) {
     }
 }
 /**
- * Clear the cached public key.
+ * Clear the cached public key for a specific merchant, or all if no merchantId.
  */
-function clearEncryptionCache() {
-    cachedPublicKey = null;
-    cacheTimestamp = 0;
+function clearEncryptionCache(merchantId) {
+    if (merchantId) {
+        keyCache.delete(merchantId);
+    }
+    else {
+        keyCache.clear();
+    }
 }
 function arrayBufferToBase64(buffer) {
     const bytes = new Uint8Array(buffer);
@@ -460,10 +470,12 @@ class KairosEncryptedAdapter {
         this.provider = 'KAIROS';
         this.apiUrl = '';
         this.tenantId = '';
+        this.merchantId = '';
     }
     async init(_publicKey, options) {
         this.apiUrl = options?.apiUrl || 'https://api.kairoshub.tech';
         this.tenantId = options?.tenantId || '';
+        this.merchantId = options?.merchantId || '';
     }
     async createCardPayment(container, config) {
         const containerEl = typeof container === 'string'
@@ -552,7 +564,7 @@ class KairosEncryptedAdapter {
                     expirationMonth: mm,
                     expirationYear,
                     cvv: cvvInput.value,
-                }, this.apiUrl, this.tenantId);
+                }, this.apiUrl, this.tenantId, this.merchantId);
                 const paymentData = {
                     token: '',
                     encryptedData: encrypted,
@@ -960,6 +972,7 @@ class KairosPayments {
         this.cardInstance = null;
         this.config = {
             tenantId: config.tenantId,
+            merchantId: config.merchantId || '',
             environment: config.environment || 'production',
             apiUrl: config.apiUrl || 'https://api.kairoshub.tech',
             preferredProvider: config.preferredProvider || undefined,
@@ -1060,6 +1073,7 @@ class KairosPayments {
         await this.adapter.init('', {
             apiUrl: this.config.apiUrl,
             tenantId: this.config.tenantId,
+            merchantId: this.config.merchantId,
             locale: this.config.locale,
         });
         return this.adapter;
