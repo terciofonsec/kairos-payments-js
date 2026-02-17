@@ -23,7 +23,9 @@
 export { KairosPayments } from './core/KairosPayments';
 export { CardPaymentForm } from './components/CardPaymentForm';
 export { KairosEncryptedAdapter } from './adapters/KairosEncryptedAdapter';
+export { PaymentPoller } from './core/PaymentPoller';
+export type { PaymentPollerConfig, PaymentStatusResponse, PaymentStatus } from './core/PaymentPoller';
 export { encryptCardData, isEncryptionAvailable, clearEncryptionCache } from './crypto/encryption';
 export type { CardDataToEncrypt } from './crypto/encryption';
 export type { KairosConfig, CardPaymentConfig, PaymentData, InstallmentOption, TokenizationOptions, PspAdapter } from './types';
-export declare const VERSION = "0.1.0";
+export declare const VERSION = "0.2.0";

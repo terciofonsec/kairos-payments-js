@@ -248,7 +248,7 @@ class PagSeguroAdapter {
           <div class="kairos-field">
             <label for="cvv">CVV</label>
             <input type="text" id="cvv" name="cvv"
-                   placeholder="123" maxlength="4" required />
+                   placeholder="123" maxlength="3" required />
           </div>
         </div>
 
@@ -518,7 +518,7 @@ class KairosEncryptedAdapter {
         });
         // CVV: digits only
         cvvInput.addEventListener('input', () => {
-            cvvInput.value = cvvInput.value.replace(/\D/g, '').slice(0, 4);
+            cvvInput.value = cvvInput.value.replace(/\D/g, '').slice(0, 3);
         });
         // Name: uppercase
         nameInput.addEventListener('input', () => {
@@ -647,7 +647,7 @@ class KairosEncryptedAdapter {
         if (year < now.getFullYear() || (year === now.getFullYear() && month < now.getMonth() + 1)) {
             return 'Cartao expirado';
         }
-        if (cvv.length < 3)
+        if (cvv.length !== 3)
             return 'CVV invalido';
         if (name.trim().length < 3)
             return 'Nome invalido';
@@ -666,10 +666,17 @@ class KairosEncryptedAdapter {
     }
     buildFormHtml(config) {
         const amountFormatted = config.amount.toFixed(2).replace('.', ',');
-        // Kairos hexagonal logo SVG (inline)
-        const kairosLogoSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 2L2 7v10l10 5 10-5V7L12 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
-      <path d="M12 7v10M8 9l4 3 4-3M8 15l4-3 4 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        // Kairos brand logo SVG (matches console icon)
+        const kairosLogoSvg = `<svg width="18" height="18" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="kairos-logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#3B82F6"/>
+          <stop offset="100%" style="stop-color:#8B5CF6"/>
+        </linearGradient>
+      </defs>
+      <circle cx="24" cy="24" r="22" fill="url(#kairos-logo-grad)"/>
+      <path d="M16 12 L16 36 M16 24 L32 12 M16 24 L32 36" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="36" cy="36" r="5" fill="#10B981"/>
     </svg>`;
         return `
       <style>
@@ -878,7 +885,7 @@ class KairosEncryptedAdapter {
               type="text"
               inputmode="numeric"
               placeholder="123"
-              maxlength="4"
+              maxlength="3"
               autocomplete="cc-csc"
               data-kairos-enc-cvv
             />
@@ -1217,7 +1224,111 @@ const brandingTextStyle = {
     letterSpacing: '0.02em',
 };
 function KairosLogo() {
-    return (jsxRuntime.jsxs("svg", { width: "14", height: "14", viewBox: "0 0 24 24", fill: "none", xmlns: "http://www.w3.org/2000/svg", children: [jsxRuntime.jsx("path", { d: "M12 2L2 7v10l10 5 10-5V7L12 2z", stroke: "#6b7280", strokeWidth: "1.5", strokeLinejoin: "round" }), jsxRuntime.jsx("path", { d: "M12 7v10M8 9l4 3 4-3M8 15l4-3 4 3", stroke: "#6b7280", strokeWidth: "1.5", strokeLinecap: "round", strokeLinejoin: "round" })] }));
+    return (jsxRuntime.jsxs("svg", { width: "14", height: "14", viewBox: "0 0 48 48", fill: "none", xmlns: "http://www.w3.org/2000/svg", children: [jsxRuntime.jsx("defs", { children: jsxRuntime.jsxs("linearGradient", { id: "kairos-form-grad", x1: "0%", y1: "0%", x2: "100%", y2: "100%", children: [jsxRuntime.jsx("stop", { offset: "0%", stopColor: "#3B82F6" }), jsxRuntime.jsx("stop", { offset: "100%", stopColor: "#8B5CF6" })] }) }), jsxRuntime.jsx("circle", { cx: "24", cy: "24", r: "22", fill: "url(#kairos-form-grad)" }), jsxRuntime.jsx("path", { d: "M16 12 L16 36 M16 24 L32 12 M16 24 L32 36", stroke: "white", strokeWidth: "4", strokeLinecap: "round", strokeLinejoin: "round" }), jsxRuntime.jsx("circle", { cx: "36", cy: "36", r: "5", fill: "#10B981" })] }));
+}
+
+/**
+ * PaymentPoller - Polls a status endpoint until a terminal status is reached.
+ *
+ * The SDK doesn't call Kairos API directly (it has no auth tokens).
+ * Instead, the integrator provides a `fetchStatus` function that calls their
+ * own backend, which in turn proxies to the Kairos transaction status API.
+ *
+ * @example
+ * ```typescript
+ * import { PaymentPoller } from '@kairos/payments-js';
+ *
+ * const poller = new PaymentPoller({
+ *   fetchStatus: async () => {
+ *     const res = await fetch(`/api/payments/status/${transactionId}`);
+ *     return res.json(); // { status: 'CONFIRMED', ... }
+ *   },
+ *   onStatusChange: (status, data) => {
+ *     if (status === 'CONFIRMED') showSuccess();
+ *   },
+ *   intervalMs: 3000,
+ *   timeoutMs: 300000, // 5 minutes
+ * });
+ *
+ * poller.start();
+ * // later: poller.stop();
+ * ```
+ */
+const TERMINAL_STATUSES = new Set([
+    'CONFIRMED',
+    'FAILED',
+    'CANCELLED',
+    'EXPIRED',
+    'REFUNDED',
+    'CHARGEBACK',
+]);
+class PaymentPoller {
+    constructor(config) {
+        this.timer = null;
+        this.timeoutTimer = null;
+        this.lastStatus = null;
+        this.running = false;
+        this.config = {
+            fetchStatus: config.fetchStatus,
+            onStatusChange: config.onStatusChange || (() => { }),
+            onComplete: config.onComplete || (() => { }),
+            onError: config.onError || (() => { }),
+            intervalMs: config.intervalMs ?? 3000,
+            timeoutMs: config.timeoutMs ?? 300000,
+        };
+    }
+    /** Start polling. Safe to call multiple times (no-op if already running). */
+    start() {
+        if (this.running)
+            return;
+        this.running = true;
+        this.lastStatus = null;
+        // First poll immediately
+        this.poll();
+        // Then poll at interval
+        this.timer = setInterval(() => this.poll(), this.config.intervalMs);
+        // Auto-stop after timeout
+        this.timeoutTimer = setTimeout(() => {
+            this.stop();
+            this.config.onStatusChange('EXPIRED', { status: 'EXPIRED', reason: 'polling_timeout' });
+            this.config.onComplete('EXPIRED', { status: 'EXPIRED', reason: 'polling_timeout' });
+        }, this.config.timeoutMs);
+    }
+    /** Stop polling and clean up timers. */
+    stop() {
+        this.running = false;
+        if (this.timer) {
+            clearInterval(this.timer);
+            this.timer = null;
+        }
+        if (this.timeoutTimer) {
+            clearTimeout(this.timeoutTimer);
+            this.timeoutTimer = null;
+        }
+    }
+    /** Whether the poller is currently active. */
+    get isRunning() {
+        return this.running;
+    }
+    async poll() {
+        if (!this.running)
+            return;
+        try {
+            const data = await this.config.fetchStatus();
+            const status = data.status?.toUpperCase() || 'PENDING';
+            if (status !== this.lastStatus) {
+                this.lastStatus = status;
+                this.config.onStatusChange(status, data);
+            }
+            if (TERMINAL_STATUSES.has(status)) {
+                this.stop();
+                this.config.onComplete(status, data);
+            }
+        }
+        catch (error) {
+            this.config.onError(error);
+        }
+    }
 }
 
 /**
@@ -1243,11 +1354,12 @@ function KairosLogo() {
  * ```
  */
 // Version
-const VERSION = '0.1.0';
+const VERSION = '0.2.0';
 
 exports.CardPaymentForm = CardPaymentForm;
 exports.KairosEncryptedAdapter = KairosEncryptedAdapter;
 exports.KairosPayments = KairosPayments;
+exports.PaymentPoller = PaymentPoller;
 exports.VERSION = VERSION;
 exports.clearEncryptionCache = clearEncryptionCache;
 exports.encryptCardData = encryptCardData;

@@ -25,6 +25,10 @@ export { KairosPayments } from './core/KairosPayments';
 export { CardPaymentForm } from './components/CardPaymentForm';
 export { KairosEncryptedAdapter } from './adapters/KairosEncryptedAdapter';
 
+// Payment status polling
+export { PaymentPoller } from './core/PaymentPoller';
+export type { PaymentPollerConfig, PaymentStatusResponse, PaymentStatus } from './core/PaymentPoller';
+
 // Encryption utilities
 export { encryptCardData, isEncryptionAvailable, clearEncryptionCache } from './crypto/encryption';
 export type { CardDataToEncrypt } from './crypto/encryption';
@@ -40,4 +44,4 @@ export type {
 } from './types';
 
 // Version
-export const VERSION = '0.1.0';
+export const VERSION = '0.2.0';

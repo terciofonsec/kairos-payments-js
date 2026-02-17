@@ -1,6 +1,6 @@
 {
   "name": "@kairos/payments-js",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Kairos Payment Hub - JavaScript SDK for card tokenization and payments",
   "main": "dist/kairos.cjs.js",

@@ -84,7 +84,7 @@ export class KairosEncryptedAdapter implements PspAdapter {
 
     // CVV: digits only
     cvvInput.addEventListener('input', () => {
-      cvvInput.value = cvvInput.value.replace(/\D/g, '').slice(0, 4);
+      cvvInput.value = cvvInput.value.replace(/\D/g, '').slice(0, 3);
     });
 
     // Name: uppercase
@@ -232,7 +232,7 @@ export class KairosEncryptedAdapter implements PspAdapter {
       return 'Cartao expirado';
     }
 
-    if (cvv.length < 3) return 'CVV invalido';
+    if (cvv.length !== 3) return 'CVV invalido';
     if (name.trim().length < 3) return 'Nome invalido';
     return null;
   }
@@ -472,7 +472,7 @@ export class KairosEncryptedAdapter implements PspAdapter {
               type="text"
               inputmode="numeric"
               placeholder="123"
-              maxlength="4"
+              maxlength="3"
               autocomplete="cc-csc"
               data-kairos-enc-cvv
             />

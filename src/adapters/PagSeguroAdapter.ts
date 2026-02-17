@@ -139,7 +139,7 @@ export class PagSeguroAdapter implements PspAdapter {
           <div class="kairos-field">
             <label for="cvv">CVV</label>
             <input type="text" id="cvv" name="cvv"
-                   placeholder="123" maxlength="4" required />
+                   placeholder="123" maxlength="3" required />
           </div>
         </div>
 
