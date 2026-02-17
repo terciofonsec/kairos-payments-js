@@ -25,6 +25,10 @@ export { KairosPayments } from './core/KairosPayments';
 export { CardPaymentForm } from './components/CardPaymentForm';
 export { KairosEncryptedAdapter } from './adapters/KairosEncryptedAdapter';
 
+// PIX QR Code display with copy-paste
+export { createPixQrCode } from './components/PixQrCode';
+export type { PixQrCodeConfig, PixQrCodeInstance } from './components/PixQrCode';
+
 // Payment status polling
 export { PaymentPoller } from './core/PaymentPoller';
 export type { PaymentPollerConfig, PaymentStatusResponse, PaymentStatus } from './core/PaymentPoller';

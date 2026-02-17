@@ -23,6 +23,8 @@
 export { KairosPayments } from './core/KairosPayments';
 export { CardPaymentForm } from './components/CardPaymentForm';
 export { KairosEncryptedAdapter } from './adapters/KairosEncryptedAdapter';
+export { createPixQrCode } from './components/PixQrCode';
+export type { PixQrCodeConfig, PixQrCodeInstance } from './components/PixQrCode';
 export { PaymentPoller } from './core/PaymentPoller';
 export type { PaymentPollerConfig, PaymentStatusResponse, PaymentStatus } from './core/PaymentPoller';
 export { encryptCardData, isEncryptionAvailable, clearEncryptionCache } from './crypto/encryption';
